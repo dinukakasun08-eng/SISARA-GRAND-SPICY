@@ -188,7 +188,7 @@ export default function MenuSection({ cart, onAddToCart, onRemoveFromCart }: Men
                   <div className="mt-5 flex items-center justify-between border-t border-gray-100 pt-4">
                     {/* Price */}
                     <span className="font-mono text-base font-bold text-gray-900">
-                      ${item.price.toFixed(2)}
+                      RS.{item.price.toFixed(2)}
                     </span>
 
                     {/* Interactive Quantity Adjuster or Add Button */}

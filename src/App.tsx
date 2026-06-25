@@ -171,7 +171,7 @@ export default function App() {
             Gourmet delicacies prepared under pristine sanitary guidelines. Pinned GPS routing coordinates are fully encrypted for your absolute privacy.
           </p>
           <p className="text-[10px] text-gray-600 font-mono pt-4">
-            © 2026 Sisara Restaurant. Colombo, Sri Lanka. All Rights Reserved.
+            © 2026 Sisara Restaurant. Veyangoda, Sri Lanka. All Rights Reserved.
           </p>
         </div>
       </footer>

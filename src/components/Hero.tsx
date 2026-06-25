@@ -36,11 +36,6 @@ export default function Hero({ onExploreClick }: HeroProps) {
             </span>
           </h2>
 
-          {/* Description */}
-          <p className="mt-4 text-base text-gray-300 sm:text-lg max-w-xl leading-relaxed">
-            Savor carefully selected fresh ingredients crafted by master chefs. Indulge in authentic, aromatic flavors served hot and delivered safely to your exact doorstep.
-          </p>
-
           {/* Key Quick Info Grid */}
           <div className="mt-8 grid grid-cols-2 sm:grid-cols-3 gap-4 border-t border-white/10 pt-6">
             <div className="flex items-center gap-2">
@@ -59,7 +54,7 @@ export default function Hero({ onExploreClick }: HeroProps) {
               </div>
               <div>
                 <p className="text-xs text-gray-400 font-sans">Location</p>
-                <p className="text-xs font-bold text-white font-sans">Colombo, Sri Lanka</p>
+                <p className="text-xs font-bold text-white font-sans">Veyangoda, Sri Lanka</p>
               </div>
             </div>
 

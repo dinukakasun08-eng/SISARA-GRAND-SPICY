@@ -290,14 +290,14 @@ export default function CartDrawer({
                           {item.name} <strong className="text-gray-900 font-mono">x{item.quantity}</strong>
                         </span>
                         <span className="font-mono font-semibold text-gray-800">
-                          ${(item.price * item.quantity).toFixed(2)}
+                          RS.{(item.price * item.quantity).toFixed(2)}
                         </span>
                       </div>
                     ))}
                   </div>
                   <div className="border-t border-gray-200 pt-3 flex items-center justify-between text-sm font-bold">
                     <span className="text-gray-900">Total Paid</span>
-                    <span className="font-mono text-amber-700">${completedOrder.totalAmount.toFixed(2)}</span>
+                    <span className="font-mono text-amber-700">RS.{completedOrder.totalAmount.toFixed(2)}</span>
                   </div>
                 </div>
 
@@ -320,7 +320,7 @@ export default function CartDrawer({
               <div className="space-y-2.5 mb-5 text-xs">
                 <div className="flex justify-between text-gray-500">
                   <span>Cart Subtotal</span>
-                  <span className="font-mono font-medium text-gray-800">${subtotal.toFixed(2)}</span>
+                  <span className="font-mono font-medium text-gray-800">RS.{subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-gray-500">
                   <span>Estimated Delivery</span>
@@ -328,18 +328,18 @@ export default function CartDrawer({
                     {deliveryFee === 0 ? (
                       <span className="text-emerald-600 font-bold">FREE</span>
                     ) : (
-                      `$${deliveryFee.toFixed(2)}`
+                      `RS.${deliveryFee.toFixed(2)}`
                     )}
                   </span>
                 </div>
                 {deliveryFee > 0 && (
                   <p className="text-[10px] text-amber-700 italic bg-amber-50 px-2 py-1 rounded border border-amber-100">
-                    💡 Spend **${(30 - subtotal).toFixed(2)}** more for **FREE** delivery!
+                    💡 Spend **RS.{(30 - subtotal).toFixed(2)}** more for **FREE** delivery!
                   </p>
                 )}
                 <div className="border-t border-gray-200/60 pt-2.5 flex justify-between text-sm font-bold text-gray-900">
                   <span>Total Due</span>
-                  <span className="font-mono text-amber-700">${totalAmount.toFixed(2)}</span>
+                  <span className="font-mono text-amber-700">RS.{totalAmount.toFixed(2)}</span>
                 </div>
               </div>
 
