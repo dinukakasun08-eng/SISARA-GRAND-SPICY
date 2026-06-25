@@ -1,0 +1,10 @@
+{
+  "name": "Sisara Restaurant",
+  "description": "A beautiful digital menu and secure food ordering website with GPS-enabled delivery tracking for Sisara Restaurant.",
+  "requestFramePermissions": [
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
