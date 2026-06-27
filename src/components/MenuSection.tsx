@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { Search, Filter, Flame, Leaf, Award, Plus, Minus, ShoppingCart } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, Filter, Flame, Leaf, Award, Plus, Minus, ShoppingCart, Loader2 } from 'lucide-react';
 import { MenuItem, CartItem } from '../types';
-import { MENU_ITEMS } from '../data/menu';
+import { db } from '../lib/firebase';
+import { collection, query, onSnapshot } from 'firebase/firestore';
 
 interface MenuSectionProps {
   cart: CartItem[];
@@ -10,14 +11,30 @@ interface MenuSectionProps {
 }
 
 export default function MenuSection({ cart, onAddToCart, onRemoveFromCart }: MenuSectionProps) {
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState<'All' | 'Appetizers' | 'Mains' | 'Desserts' | 'Drinks'>('All');
   const [filterVegetarian, setFilterVegetarian] = useState(false);
   const [filterSpicy, setFilterSpicy] = useState(false);
   const [filterPopular, setFilterPopular] = useState(false);
 
+  useEffect(() => {
+    const q = query(collection(db, 'products'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetched = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as MenuItem[];
+      setMenuItems(fetched);
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
   // Filter logic
-  const filteredItems = MENU_ITEMS.filter((item) => {
+  const filteredItems = menuItems.filter((item) => {
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           item.description.toLowerCase().includes(searchTerm.toLowerCase());
     
@@ -127,8 +144,12 @@ export default function MenuSection({ cart, onAddToCart, onRemoveFromCart }: Men
         </div>
       </div>
 
-      {/* Grid of Menu Items */}
-      {filteredItems.length > 0 ? (
+      {loading ? (
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <Loader2 className="w-10 h-10 text-amber-600 animate-spin mb-4" />
+          <p className="text-gray-500 text-sm">Loading our fresh menu...</p>
+        </div>
+      ) : filteredItems.length > 0 ? (
         <div id="menu-items-grid" className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {filteredItems.map((item) => {
             const quantity = getItemQuantity(item.id);
@@ -188,7 +209,7 @@ export default function MenuSection({ cart, onAddToCart, onRemoveFromCart }: Men
                   <div className="mt-5 flex items-center justify-between border-t border-gray-100 pt-4">
                     {/* Price */}
                     <span className="font-mono text-base font-bold text-gray-900">
-                      RS.{item.price.toFixed(2)}
+                      LKR {item.price.toFixed(2)}
                     </span>
 
                     {/* Interactive Quantity Adjuster or Add Button */}

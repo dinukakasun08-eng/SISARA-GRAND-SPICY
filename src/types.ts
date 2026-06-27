@@ -34,8 +34,9 @@ export interface Order {
   } | null;
   items: OrderItem[];
   totalAmount: number;
-  status: 'pending' | 'preparing' | 'delivered' | 'cancelled';
+  status: 'pending' | 'preparing' | 'on_way' | 'delivered' | 'cancelled';
   createdAt: string;
+  deliveryGuyNumber?: string;
 }
 
 export interface AdminLoginResponse {

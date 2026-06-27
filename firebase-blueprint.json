@@ -1,0 +1,32 @@
+{
+  "schemas": {
+    "orders": {
+      "collection": "orders",
+      "fields": [
+        { "name": "customerId", "type": "string" },
+        { "name": "customerName", "type": "string" },
+        { "name": "customerPhone", "type": "string" },
+        { "name": "deliveryAddress", "type": "string" },
+        { "name": "coordinates", "type": "map", "optional": true },
+        { "name": "items", "type": "array" },
+        { "name": "totalAmount", "type": "number" },
+        { "name": "status", "type": "string" },
+        { "name": "createdAt", "type": "string" }
+      ],
+      "rules": [
+        {
+          "allow": "read",
+          "condition": "request.auth != null && (request.auth.uid == resource.data.customerId || request.auth.token.admin == true)"
+        },
+        {
+          "allow": "create",
+          "condition": "request.auth != null && request.auth.uid == request.resource.data.customerId"
+        },
+        {
+          "allow": "update",
+          "condition": "request.auth != null && (request.auth.uid == resource.data.customerId || request.auth.token.admin == true)"
+        }
+      ]
+    }
+  }
+}

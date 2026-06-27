@@ -1,8 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { MapPin, Phone, User, ShieldCheck, Navigation, Loader2, CheckCircle2 } from 'lucide-react';
+import { calculateDistance } from '../lib/utils';
 
 interface CheckoutFormProps {
-  totalAmount: number;
+  subtotal: number;
+  perKmRate: number;
+  restaurantLocation: { lat: number; lng: number };
   onSubmit: (formData: {
     customerName: string;
     customerPhone: string;
@@ -12,7 +15,7 @@ interface CheckoutFormProps {
   isSubmitting: boolean;
 }
 
-export default function CheckoutForm({ totalAmount, onSubmit, isSubmitting }: CheckoutFormProps) {
+export default function CheckoutForm({ subtotal, perKmRate, restaurantLocation, onSubmit, isSubmitting }: CheckoutFormProps) {
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
@@ -84,6 +87,21 @@ export default function CheckoutForm({ totalAmount, onSubmit, isSubmitting }: Ch
       coordinates
     });
   };
+
+  const deliveryFee = useMemo(() => {
+    if (coordinates) {
+      const distance = calculateDistance(
+        restaurantLocation.lat,
+        restaurantLocation.lng,
+        coordinates.latitude,
+        coordinates.longitude
+      );
+      return distance * perKmRate;
+    }
+    return 150; // default fallback if no location
+  }, [coordinates, perKmRate, restaurantLocation]);
+
+  const totalAmount = subtotal + deliveryFee;
 
   return (
     <form id="checkout-form-container" onSubmit={handleFormSubmit} className="space-y-5">
@@ -236,9 +254,21 @@ export default function CheckoutForm({ totalAmount, onSubmit, isSubmitting }: Ch
 
       {/* Checkout Summary Footer */}
       <div className="border-t border-gray-100 pt-4 mt-6">
-        <div className="flex items-center justify-between mb-4">
-          <span className="text-sm font-semibold text-gray-900">Total Order Amount</span>
-          <span className="font-mono text-lg font-bold text-gray-900">${totalAmount.toFixed(2)}</span>
+        <div className="space-y-2 mb-4 text-sm">
+          <div className="flex justify-between text-gray-500">
+            <span>Subtotal</span>
+            <span className="font-mono text-gray-800">LKR {subtotal.toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between text-gray-500">
+            <span>Estimated Delivery</span>
+            <span className="font-mono text-gray-800">
+              {coordinates ? `LKR ${deliveryFee.toFixed(2)}` : 'Share location to calculate'}
+            </span>
+          </div>
+          <div className="border-t border-gray-200/60 pt-2 flex items-center justify-between font-semibold">
+            <span className="text-gray-900">Total Order Amount</span>
+            <span className="font-mono text-lg text-amber-700">LKR {totalAmount.toFixed(2)}</span>
+          </div>
         </div>
 
         <button

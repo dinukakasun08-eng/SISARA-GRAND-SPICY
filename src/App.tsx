@@ -1,15 +1,51 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Header from './components/Header';
 import Hero from './components/Hero';
 import MenuSection from './components/MenuSection';
 import CartDrawer from './components/CartDrawer';
 import AdminDashboard from './components/AdminDashboard';
+import MyOrders from './components/MyOrders';
+import ReviewsSection from './components/ReviewsSection';
+import TutorialModal from './components/TutorialModal';
 import { MenuItem, CartItem, Order } from './types';
+import { auth, db } from './lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { collection, addDoc, doc, onSnapshot } from 'firebase/firestore';
+import { calculateDistance } from './lib/utils';
 
 export default function App() {
-  const [currentView, setView] = useState<'menu' | 'admin'>('menu');
+  const [currentView, setView] = useState<'menu' | 'admin' | 'my-orders'>('menu');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [perKmRate, setPerKmRate] = useState<number>(50);
+  const [restaurantLocation, setRestaurantLocation] = useState<{lat: number, lng: number}>({ lat: 7.1558, lng: 80.0505 });
+  const [heroMediaUrl, setHeroMediaUrl] = useState<string>('');
+
+  useEffect(() => {
+    const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+    
+    const unsubscribeSettings = onSnapshot(doc(db, 'settings', 'delivery'), (doc) => {
+      if (doc.exists()) {
+        setPerKmRate(doc.data().perKmRate || 50);
+        if (doc.data().restaurantLocation) {
+          setRestaurantLocation(doc.data().restaurantLocation);
+        }
+        if (doc.data().heroMediaUrl) {
+          setHeroMediaUrl(doc.data().heroMediaUrl);
+        } else {
+          setHeroMediaUrl('');
+        }
+      }
+    });
+
+    return () => {
+      unsubscribeAuth();
+      unsubscribeSettings();
+    };
+  }, []);
 
   // Reference for scrolling to the menu from the Hero section
   const menuRef = useRef<HTMLDivElement>(null);
@@ -82,28 +118,41 @@ export default function App() {
       }));
 
       const subtotal = cart.reduce((acc, item) => acc + item.menuItem.price * item.quantity, 0);
-      const deliveryFee = subtotal > 30 ? 0 : 3.50;
+      
+      let deliveryFee = 0;
+      if (formData.coordinates) {
+        const distance = calculateDistance(
+          restaurantLocation.lat,
+          restaurantLocation.lng,
+          formData.coordinates.latitude,
+          formData.coordinates.longitude
+        );
+        deliveryFee = distance * perKmRate;
+      } else {
+        // Fallback fee if no location
+        deliveryFee = 150;
+      }
+      
       const totalAmount = subtotal + deliveryFee;
 
-      const response = await fetch('/api/orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          customerName: formData.customerName,
-          customerPhone: formData.customerPhone,
-          deliveryAddress: formData.deliveryAddress,
-          coordinates: formData.coordinates,
-          items: orderItems,
-          totalAmount
-        })
-      });
+      const orderData = {
+        customerId: user ? user.uid : 'guest',
+        customerName: formData.customerName,
+        customerPhone: formData.customerPhone,
+        deliveryAddress: formData.deliveryAddress,
+        coordinates: formData.coordinates,
+        items: orderItems,
+        totalAmount,
+        status: 'pending',
+        createdAt: new Date().toISOString()
+      };
 
-      if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.error || 'Failed to place order');
-      }
-
-      const completedOrder: Order = await response.json();
+      const docRef = await addDoc(collection(db, 'orders'), orderData);
+      
+      const completedOrder: Order = {
+        id: docRef.id,
+        ...orderData
+      } as Order;
       
       // Order placed successfully - empty local cart
       setCart([]);
@@ -127,6 +176,7 @@ export default function App() {
         setView={setView}
         cartCount={cartCount}
         onCartClick={() => setIsCartOpen(true)}
+        user={user}
       />
 
       {/* 2. Main Viewport Routing */}
@@ -134,7 +184,7 @@ export default function App() {
         {currentView === 'menu' ? (
           <div id="view-customer-menu">
             {/* Hero Welcoming Section */}
-            <Hero onExploreClick={scrollToMenu} />
+            <Hero onExploreClick={scrollToMenu} heroMediaUrl={heroMediaUrl} />
 
             {/* Target scroll anchor container */}
             <div ref={menuRef} id="menu-scroll-anchor" className="scroll-mt-16">
@@ -144,13 +194,19 @@ export default function App() {
                 onRemoveFromCart={handleRemoveFromCart}
               />
             </div>
+            
+            <ReviewsSection />
           </div>
+        ) : currentView === 'my-orders' ? (
+          <MyOrders />
         ) : (
           <div id="view-admin-dashboard">
             <AdminDashboard />
           </div>
         )}
       </main>
+
+      <TutorialModal />
 
       {/* 3. Slide-Over Cart Drawer */}
       <CartDrawer
@@ -161,6 +217,8 @@ export default function App() {
         onRemoveFromCart={handleRemoveFromCart}
         onClearCartItem={handleClearCartItem}
         onPlaceOrder={handlePlaceOrder}
+        perKmRate={perKmRate}
+        restaurantLocation={restaurantLocation}
       />
 
       {/* 4. Footer */}
@@ -170,9 +228,10 @@ export default function App() {
           <p className="text-xs text-gray-500 leading-relaxed max-w-md mx-auto">
             Gourmet delicacies prepared under pristine sanitary guidelines. Pinned GPS routing coordinates are fully encrypted for your absolute privacy.
           </p>
-          <p className="text-[10px] text-gray-600 font-mono pt-4">
-            © 2026 Sisara Restaurant. Veyangoda, Sri Lanka. All Rights Reserved.
-          </p>
+          <div className="text-[11px] text-gray-600 font-mono pt-4 flex flex-col space-y-1">
+            <span>© 2026 Sisara Restaurant. Veyangoda, Sri Lanka. All Rights Reserved.</span>
+            <span className="text-gray-400 font-medium">Developer: DINUKA KASUN | Contact: +94786241514</span>
+          </div>
         </div>
       </footer>
     </div>

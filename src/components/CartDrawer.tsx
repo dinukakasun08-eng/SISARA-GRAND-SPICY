@@ -16,6 +16,8 @@ interface CartDrawerProps {
     deliveryAddress: string;
     coordinates: { latitude: number; longitude: number; accuracy?: number } | null;
   }) => Promise<Order | null>;
+  perKmRate: number;
+  restaurantLocation: {lat: number, lng: number};
 }
 
 export default function CartDrawer({
@@ -25,7 +27,9 @@ export default function CartDrawer({
   onAddToCart,
   onRemoveFromCart,
   onClearCartItem,
-  onPlaceOrder
+  onPlaceOrder,
+  perKmRate,
+  restaurantLocation
 }: CartDrawerProps) {
   const [step, setStep] = useState<'cart' | 'checkout' | 'receipt'>('cart');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -35,8 +39,6 @@ export default function CartDrawer({
 
   // Calculations
   const subtotal = cart.reduce((acc, item) => acc + item.menuItem.price * item.quantity, 0);
-  const deliveryFee = subtotal > 30 ? 0 : 3.50; // Free delivery for orders over $30
-  const totalAmount = subtotal + deliveryFee;
 
   const handleCheckoutSubmit = async (formData: {
     customerName: string;
@@ -147,7 +149,7 @@ export default function CartDrawer({
                             </button>
                           </div>
                           <p className="font-mono text-xs text-gray-500 mt-0.5">
-                            ${item.menuItem.price.toFixed(2)} each
+                            LKR {item.menuItem.price.toFixed(2)} each
                           </p>
 
                           {/* Inline Controls */}
@@ -173,7 +175,7 @@ export default function CartDrawer({
                               </button>
                             </div>
                             <span className="font-mono text-xs font-bold text-gray-900">
-                              ${(item.menuItem.price * item.quantity).toFixed(2)}
+                              LKR {(item.menuItem.price * item.quantity).toFixed(2)}
                             </span>
                           </div>
                         </div>
@@ -203,7 +205,9 @@ export default function CartDrawer({
 
             {step === 'checkout' && (
               <CheckoutForm
-                totalAmount={totalAmount}
+                subtotal={subtotal}
+                perKmRate={perKmRate}
+                restaurantLocation={restaurantLocation}
                 onSubmit={handleCheckoutSubmit}
                 isSubmitting={isSubmitting}
               />
@@ -290,14 +294,14 @@ export default function CartDrawer({
                           {item.name} <strong className="text-gray-900 font-mono">x{item.quantity}</strong>
                         </span>
                         <span className="font-mono font-semibold text-gray-800">
-                          RS.{(item.price * item.quantity).toFixed(2)}
+                          LKR {(item.price * item.quantity).toFixed(2)}
                         </span>
                       </div>
                     ))}
                   </div>
                   <div className="border-t border-gray-200 pt-3 flex items-center justify-between text-sm font-bold">
                     <span className="text-gray-900">Total Paid</span>
-                    <span className="font-mono text-amber-700">RS.{completedOrder.totalAmount.toFixed(2)}</span>
+                    <span className="font-mono text-amber-700">LKR {completedOrder.totalAmount.toFixed(2)}</span>
                   </div>
                 </div>
 
@@ -320,26 +324,17 @@ export default function CartDrawer({
               <div className="space-y-2.5 mb-5 text-xs">
                 <div className="flex justify-between text-gray-500">
                   <span>Cart Subtotal</span>
-                  <span className="font-mono font-medium text-gray-800">RS.{subtotal.toFixed(2)}</span>
+                  <span className="font-mono font-medium text-gray-800">LKR {subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-gray-500">
                   <span>Estimated Delivery</span>
                   <span className="font-mono font-medium text-gray-800">
-                    {deliveryFee === 0 ? (
-                      <span className="text-emerald-600 font-bold">FREE</span>
-                    ) : (
-                      `RS.${deliveryFee.toFixed(2)}`
-                    )}
+                    Calculated at checkout
                   </span>
                 </div>
-                {deliveryFee > 0 && (
-                  <p className="text-[10px] text-amber-700 italic bg-amber-50 px-2 py-1 rounded border border-amber-100">
-                    💡 Spend **RS.{(30 - subtotal).toFixed(2)}** more for **FREE** delivery!
-                  </p>
-                )}
                 <div className="border-t border-gray-200/60 pt-2.5 flex justify-between text-sm font-bold text-gray-900">
                   <span>Total Due</span>
-                  <span className="font-mono text-amber-700">RS.{totalAmount.toFixed(2)}</span>
+                  <span className="font-mono text-amber-700">Calculated at checkout</span>
                 </div>
               </div>
 
