@@ -104,7 +104,7 @@ export default function AdminDashboard() {
         setOrdersLoading(false);
       },
       (error) => {
-        console.error("Failed to sync orders:", error);
+        console.warn("Failed to sync orders:", error);
         setOrdersLoading(false);
       },
     );
@@ -145,6 +145,33 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleUpdateFee = async (orderId: string, currentTotal: number) => {
+    const feeStr = window.prompt("Enter additional fee amount (LKR):", "0");
+    if (feeStr === null) return;
+    
+    const fee = parseFloat(feeStr);
+    if (isNaN(fee) || fee < 0) {
+      alert("Invalid fee amount");
+      return;
+    }
+    
+    const reason = window.prompt("Enter reason for additional fee (e.g., Extra Cheese):", "");
+    if (reason === null) return;
+
+    setUpdatingOrderId(orderId);
+    try {
+      await updateDoc(doc(db, "orders", orderId), { 
+        additionalFee: fee,
+        additionalFeeReason: reason,
+        totalAmount: currentTotal + fee
+      });
+    } catch (err) {
+      console.error("Failed to update fee:", err);
+    } finally {
+      setUpdatingOrderId(null);
+    }
+  };
+
   const handleClearOrders = async () => {
     if (
       window.confirm(
@@ -169,6 +196,105 @@ export default function AdminDashboard() {
     }
   };
 
+  const handlePrintReceipt = async (order: Order) => {
+    try {
+      const docRef = doc(db, 'settings', 'delivery');
+      const docSnap = await getDoc(docRef);
+      const settings = docSnap.exists() ? docSnap.data().receiptSettings || {} : {};
+      
+      const headerText = settings.headerText || 'Sisara Grand Spicy';
+      const addressText = settings.address || 'Veyangoda, Sri Lanka';
+      const phoneText = settings.phone || '+94 78 624 1514';
+      const footerText = settings.footerText || 'Thank you for your order!';
+      const logoUrl = settings.logoUrl || '';
+
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) return;
+
+      const itemsHtml = order.items.map(item => `
+        <div class="item">
+          <div>${item.name} x${item.quantity}</div>
+          <div>LKR ${(item.price * item.quantity).toFixed(2)}</div>
+        </div>
+      `).join('');
+
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Receipt - ${order.id}</title>
+            <style>
+              body { font-family: 'Courier New', Courier, monospace; font-size: 14px; width: 300px; margin: 0 auto; padding: 20px; color: #000; }
+              .center { text-align: center; }
+              .bold { font-weight: bold; }
+              .header { margin-bottom: 20px; }
+              .divider { border-bottom: 1px dashed #000; margin: 10px 0; }
+              .item { display: flex; justify-content: space-between; margin-bottom: 5px; }
+              .total { display: flex; justify-content: space-between; font-weight: bold; font-size: 16px; margin-top: 10px; }
+              .footer { text-align: center; margin-top: 20px; font-size: 12px; }
+              .logo { max-width: 150px; margin: 0 auto 10px auto; display: block; }
+            </style>
+          </head>
+          <body>
+            <div class="header center">
+              ${logoUrl ? `<img src="${logoUrl}" class="logo" />` : ''}
+              <div class="bold" style="font-size: 18px;">${headerText}</div>
+              <div>${addressText}</div>
+              <div>${phoneText}</div>
+            </div>
+            
+            <div class="divider"></div>
+            <div>Date: ${new Date(order.createdAt).toLocaleString()}</div>
+            <div>Order ID: #${order.id.slice(0, 8).toUpperCase()}</div>
+            <div>Customer: ${order.customerName}</div>
+            <div>Phone: ${order.customerPhone}</div>
+            ${order.specialInstructions ? `<div>Instructions: ${order.specialInstructions}</div>` : ''}
+            <div class="divider"></div>
+            
+            ${itemsHtml}
+            
+            ${order.additionalFee ? `
+            <div class="item">
+              <div>${order.additionalFeeReason || 'Additional Fee'}</div>
+              <div>LKR ${order.additionalFee.toFixed(2)}</div>
+            </div>
+            ` : ''}
+
+            <div class="divider"></div>
+            <div class="total">
+              <div>TOTAL</div>
+              <div>LKR ${order.totalAmount.toFixed(2)}</div>
+            </div>
+            
+            <div class="divider"></div>
+            <div class="footer">
+              ${footerText}
+            </div>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(() => {
+        printWindow.print();
+        printWindow.close();
+      }, 500);
+    } catch (err) {
+      console.error("Failed to print receipt:", err);
+      alert("Could not print receipt.");
+    }
+  };
+
+  const now = new Date();
+  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const day = now.getDay();
+  const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day).getTime();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+
+  const activeOrders = orders.filter((o) => o.status !== "cancelled");
+  const salesToday = activeOrders.filter(o => new Date(o.createdAt).getTime() >= startOfDay).reduce((acc, o) => acc + o.totalAmount, 0);
+  const salesWeek = activeOrders.filter(o => new Date(o.createdAt).getTime() >= startOfWeek).reduce((acc, o) => acc + o.totalAmount, 0);
+  const salesMonth = activeOrders.filter(o => new Date(o.createdAt).getTime() >= startOfMonth).reduce((acc, o) => acc + o.totalAmount, 0);
+
   const stats = {
     pending: orders.filter((o) => o.status === "pending").length,
     preparing: orders.filter((o) => o.status === "preparing").length,
@@ -178,6 +304,9 @@ export default function AdminDashboard() {
     revenue: orders
       .filter((o) => o.status === "delivered")
       .reduce((acc, o) => acc + o.totalAmount, 0),
+    salesToday,
+    salesWeek,
+    salesMonth
   };
 
   if (!isAuthenticated) {
@@ -430,6 +559,21 @@ export default function AdminDashboard() {
             </div>
           </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <div className="rounded-2xl border border-gray-200 bg-white p-5 flex flex-col justify-center">
+              <p className="text-xs font-bold text-gray-500 uppercase mb-1">Today's Sales</p>
+              <p className="text-2xl font-bold text-gray-900 font-mono">LKR {stats.salesToday.toFixed(2)}</p>
+            </div>
+            <div className="rounded-2xl border border-gray-200 bg-white p-5 flex flex-col justify-center">
+              <p className="text-xs font-bold text-gray-500 uppercase mb-1">This Week's Sales</p>
+              <p className="text-2xl font-bold text-gray-900 font-mono">LKR {stats.salesWeek.toFixed(2)}</p>
+            </div>
+            <div className="rounded-2xl border border-gray-200 bg-white p-5 flex flex-col justify-center">
+              <p className="text-xs font-bold text-gray-500 uppercase mb-1">This Month's Sales</p>
+              <p className="text-2xl font-bold text-gray-900 font-mono">LKR {stats.salesMonth.toFixed(2)}</p>
+            </div>
+          </div>
+
           {/* Orders Feed Feed */}
           {ordersLoading && orders.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-center bg-white rounded-2xl border border-gray-150 shadow-3xs">
@@ -548,6 +692,15 @@ export default function AdminDashboard() {
                               Order Cancelled
                             </span>
                           )}
+
+                          <button
+                            onClick={() => handlePrintReceipt(order)}
+                            className="inline-flex items-center gap-1 rounded-lg bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-2.5 py-1.5 text-xs font-bold transition-all shadow-3xs"
+                            title="Print Receipt"
+                          >
+                            <ClipboardList className="h-3 w-3" />
+                            <span>Print</span>
+                          </button>
                         </div>
                       )}
                     </div>
@@ -584,13 +737,47 @@ export default function AdminDashboard() {
                             </div>
                           </div>
                         ))}
+                        {order.additionalFee && order.additionalFee > 0 ? (
+                          <div className="flex justify-between items-center px-4 py-3 text-xs bg-amber-50/50">
+                            <div>
+                              <p className="font-bold text-gray-900">
+                                Additional Fee
+                              </p>
+                              <p className="text-gray-500 mt-0.5">
+                                {order.additionalFeeReason || "Manual Adjustment"}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-bold text-gray-900 font-mono">
+                                LKR {order.additionalFee.toFixed(2)}
+                              </p>
+                            </div>
+                          </div>
+                        ) : null}
                       </div>
 
-                      <div className="flex justify-between items-center rounded-xl bg-gray-100 p-4 font-sans text-sm">
-                        <span className="font-bold text-gray-700">
-                          Total Charged
-                        </span>
-                        <span className="font-mono text-lg font-black text-amber-700">
+                      {order.specialInstructions && (
+                        <div className="mb-4 p-3 rounded-xl bg-yellow-50 border border-yellow-200 text-sm">
+                          <p className="font-bold text-yellow-800 text-xs uppercase mb-1">Special Instructions</p>
+                          <p className="text-yellow-900">{order.specialInstructions}</p>
+                        </div>
+                      )}
+
+                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center rounded-xl bg-gray-100 p-4 font-sans text-sm gap-4">
+                        <div className="flex flex-col">
+                          <span className="font-bold text-gray-700">
+                            Total Charged
+                          </span>
+                          {(order.status === "pending" || order.status === "preparing") && (
+                            <button
+                              onClick={() => handleUpdateFee(order.id, order.totalAmount - (order.additionalFee || 0))}
+                              className="text-xs text-amber-700 hover:text-amber-800 font-bold mt-1 text-left"
+                            >
+                              + Add Extra Fee
+                            </button>
+                          )}
+                        </div>
+                        <span className="font-mono text-lg font-black text-amber-700 text-right">
                           LKR {order.totalAmount.toFixed(2)}
                         </span>
                       </div>

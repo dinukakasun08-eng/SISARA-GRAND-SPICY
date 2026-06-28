@@ -39,6 +39,9 @@ export default function ReviewsSection() {
       
       setReviews(sortedReviews);
       setLoading(false);
+    }, (error) => {
+      console.warn("Reviews snapshot error:", error);
+      setLoading(false);
     });
 
     return () => unsubscribe();

@@ -11,6 +11,7 @@ interface CheckoutFormProps {
     customerPhone: string;
     deliveryAddress: string;
     coordinates: { latitude: number; longitude: number; accuracy?: number } | null;
+    specialInstructions?: string;
   }) => void;
   isSubmitting: boolean;
 }
@@ -19,6 +20,7 @@ export default function CheckoutForm({ subtotal, perKmRate, restaurantLocation, 
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [specialInstructions, setSpecialInstructions] = useState('');
   const [coordinates, setCoordinates] = useState<{ latitude: number; longitude: number; accuracy?: number } | null>(null);
   const [geoLoading, setGeoLoading] = useState(false);
   const [geoError, setGeoError] = useState<string | null>(null);
@@ -84,7 +86,8 @@ export default function CheckoutForm({ subtotal, perKmRate, restaurantLocation, 
       customerName,
       customerPhone,
       deliveryAddress,
-      coordinates
+      coordinates,
+      specialInstructions: specialInstructions.trim()
     });
   };
 
@@ -161,6 +164,21 @@ export default function CheckoutForm({ subtotal, perKmRate, restaurantLocation, 
               className="w-full rounded-xl border border-gray-200 bg-white py-3 pr-4 pl-10 text-sm font-sans text-gray-900 placeholder-gray-400 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 shadow-xs resize-none"
             />
           </div>
+        </div>
+
+        {/* Special Instructions */}
+        <div>
+          <label htmlFor="input-instructions" className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">
+            Special Instructions (Optional)
+          </label>
+          <textarea
+            id="input-instructions"
+            rows={2}
+            placeholder="e.g. Extra spicy, more cheese, no onions..."
+            value={specialInstructions}
+            onChange={(e) => setSpecialInstructions(e.target.value)}
+            className="w-full rounded-xl border border-gray-200 bg-white py-3 px-4 text-sm font-sans text-gray-900 placeholder-gray-400 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 shadow-xs resize-none"
+          />
         </div>
 
         {/* Geolocation Section */}

@@ -1,8 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { Search, Filter, Flame, Leaf, Award, Plus, Minus, ShoppingCart, Loader2 } from 'lucide-react';
-import { MenuItem, CartItem } from '../types';
-import { db } from '../lib/firebase';
-import { collection, query, onSnapshot } from 'firebase/firestore';
+import React, { useState, useEffect } from "react";
+import {
+  Search,
+  Filter,
+  Flame,
+  Leaf,
+  Award,
+  Plus,
+  Minus,
+  ShoppingCart,
+  Loader2,
+} from "lucide-react";
+import { MenuItem, CartItem } from "../types";
+import { db } from "../lib/firebase";
+import { collection, query, onSnapshot } from "firebase/firestore";
 
 interface MenuSectionProps {
   cart: CartItem[];
@@ -10,50 +20,119 @@ interface MenuSectionProps {
   onRemoveFromCart: (item: MenuItem) => void;
 }
 
-export default function MenuSection({ cart, onAddToCart, onRemoveFromCart }: MenuSectionProps) {
+export default function MenuSection({
+  cart,
+  onAddToCart,
+  onRemoveFromCart,
+}: MenuSectionProps) {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const [searchTerm, setSearchTerm] = useState('');
-  const [activeCategory, setActiveCategory] = useState<'All' | 'Appetizers' | 'Mains' | 'Desserts' | 'Drinks'>('All');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [activeCategory, setActiveCategory] = useState<
+    "All" | "Appetizers" | "Mains" | "Desserts" | "Drinks"
+  >("All");
   const [filterVegetarian, setFilterVegetarian] = useState(false);
   const [filterSpicy, setFilterSpicy] = useState(false);
   const [filterPopular, setFilterPopular] = useState(false);
 
   useEffect(() => {
-    const q = query(collection(db, 'products'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const fetched = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as MenuItem[];
-      setMenuItems(fetched);
-      setLoading(false);
-    });
+    const q = query(collection(db, "products"));
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const fetched = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as MenuItem[];
+        setMenuItems(fetched);
+        setLoading(false);
+      },
+      (error) => {
+        console.warn("Menu snapshot error:", error);
+        // Fallback data when Firebase quota is exceeded
+        setMenuItems([
+          {
+            id: "fb-1",
+            name: "Classic Burger",
+            description:
+              "Juicy beef patty with fresh lettuce, tomatoes, and our signature sauce.",
+            price: 1200,
+            category: "Mains",
+            imageUrl:
+              "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&q=80",
+            isPopular: true,
+          },
+          {
+            id: "fb-2",
+            name: "Spicy Fries",
+            description:
+              "Crispy french fries tossed in our special spicy seasoning.",
+            price: 450,
+            category: "Appetizers",
+            imageUrl:
+              "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?auto=format&fit=crop&q=80",
+            isVegetarian: true,
+            isSpicy: true,
+          },
+          {
+            id: "fb-3",
+            name: "Chocolate Lava Cake",
+            description: "Warm chocolate cake with a gooey molten center.",
+            price: 650,
+            category: "Desserts",
+            imageUrl:
+              "https://images.unsplash.com/photo-1606313564200-e75d5e30476c?auto=format&fit=crop&q=80",
+          },
+          {
+            id: "fb-4",
+            name: "Fresh Lemonade",
+            description: "Freshly squeezed lemons with a hint of mint.",
+            price: 350,
+            category: "Drinks",
+            imageUrl:
+              "https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&q=80",
+            isVegetarian: true,
+          },
+        ]);
+        setLoading(false);
+      },
+    );
     return () => unsubscribe();
   }, []);
 
   // Filter logic
   const filteredItems = menuItems.filter((item) => {
-    const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          item.description.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesCategory = activeCategory === 'All' || item.category === activeCategory;
+    const matchesSearch =
+      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.description.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesCategory =
+      activeCategory === "All" || item.category === activeCategory;
     const matchesVegetarian = !filterVegetarian || item.isVegetarian;
     const matchesSpicy = !filterSpicy || item.isSpicy;
     const matchesPopular = !filterPopular || item.isPopular;
 
-    return matchesSearch && matchesCategory && matchesVegetarian && matchesSpicy && matchesPopular;
+    return (
+      matchesSearch &&
+      matchesCategory &&
+      matchesVegetarian &&
+      matchesSpicy &&
+      matchesPopular
+    );
   });
 
   // Helper to find quantity of an item in the cart
   const getItemQuantity = (itemId: string) => {
-    const found = cart.find(item => item.menuItem.id === itemId);
+    const found = cart.find((item) => item.menuItem.id === itemId);
     return found ? found.quantity : 0;
   };
 
   return (
-    <section id="menu-workspace" className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+    <section
+      id="menu-workspace"
+      className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8"
+    >
       {/* Menu Header Title */}
       <div className="text-center md:text-left mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
@@ -61,7 +140,8 @@ export default function MenuSection({ cart, onAddToCart, onRemoveFromCart }: Men
             Explore Our Digital <span className="text-amber-600">Menu</span>
           </h3>
           <p className="mt-2 text-sm text-gray-500 max-w-lg">
-            Each recipe is an exquisite masterpiece of aroma, flavor, and fresh ingredients. Order for prompt home delivery.
+            Each recipe is an exquisite masterpiece of aroma, flavor, and fresh
+            ingredients. Order for prompt home delivery.
           </p>
         </div>
 
@@ -72,8 +152,8 @@ export default function MenuSection({ cart, onAddToCart, onRemoveFromCart }: Men
             onClick={() => setFilterVegetarian(!filterVegetarian)}
             className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all ${
               filterVegetarian
-                ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border border-transparent'
+                ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200 border border-transparent"
             }`}
           >
             <Leaf className="h-3.5 w-3.5 text-emerald-600" />
@@ -85,8 +165,8 @@ export default function MenuSection({ cart, onAddToCart, onRemoveFromCart }: Men
             onClick={() => setFilterSpicy(!filterSpicy)}
             className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all ${
               filterSpicy
-                ? 'bg-rose-100 text-rose-800 border border-rose-300'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border border-transparent'
+                ? "bg-rose-100 text-rose-800 border border-rose-300"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200 border border-transparent"
             }`}
           >
             <Flame className="h-3.5 w-3.5 text-rose-600" />
@@ -98,8 +178,8 @@ export default function MenuSection({ cart, onAddToCart, onRemoveFromCart }: Men
             onClick={() => setFilterPopular(!filterPopular)}
             className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all ${
               filterPopular
-                ? 'bg-amber-100 text-amber-800 border border-amber-300'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border border-transparent'
+                ? "bg-amber-100 text-amber-800 border border-amber-300"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200 border border-transparent"
             }`}
           >
             <Award className="h-3.5 w-3.5 text-amber-600" />
@@ -126,15 +206,17 @@ export default function MenuSection({ cart, onAddToCart, onRemoveFromCart }: Men
         {/* Category filter tabs */}
         <div className="md:col-span-8 flex items-center overflow-x-auto pb-1 md:pb-0 scrollbar-none">
           <div className="flex gap-2 w-full">
-            {(['All', 'Appetizers', 'Mains', 'Desserts', 'Drinks'] as const).map((category) => (
+            {(
+              ["All", "Appetizers", "Mains", "Desserts", "Drinks"] as const
+            ).map((category) => (
               <button
                 key={category}
                 id={`category-tab-${category}`}
                 onClick={() => setActiveCategory(category)}
                 className={`flex-shrink-0 rounded-xl px-4 py-3 text-xs font-semibold transition-all ${
                   activeCategory === category
-                    ? 'bg-amber-600 text-white shadow-sm'
-                    : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
+                    ? "bg-amber-600 text-white shadow-sm"
+                    : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-200"
                 }`}
               >
                 {category}
@@ -150,7 +232,10 @@ export default function MenuSection({ cart, onAddToCart, onRemoveFromCart }: Men
           <p className="text-gray-500 text-sm">Loading our fresh menu...</p>
         </div>
       ) : filteredItems.length > 0 ? (
-        <div id="menu-items-grid" className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div
+          id="menu-items-grid"
+          className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"
+        >
           {filteredItems.map((item) => {
             const quantity = getItemQuantity(item.id);
             return (
@@ -250,19 +335,25 @@ export default function MenuSection({ cart, onAddToCart, onRemoveFromCart }: Men
           })}
         </div>
       ) : (
-        <div id="no-items-state" className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-200 py-16 px-4 text-center">
+        <div
+          id="no-items-state"
+          className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-200 py-16 px-4 text-center"
+        >
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-50 text-amber-600 mb-4">
             <Search className="h-6 w-6" />
           </div>
-          <h4 className="text-base font-semibold text-gray-900">No delicious matches found</h4>
+          <h4 className="text-base font-semibold text-gray-900">
+            No delicious matches found
+          </h4>
           <p className="mt-1 text-xs text-gray-500 max-w-xs">
-            We couldn't find items matching your search or tags. Adjust filters or try searching for another dish!
+            We couldn't find items matching your search or tags. Adjust filters
+            or try searching for another dish!
           </p>
           <button
             id="clear-filters-btn"
             onClick={() => {
-              setSearchTerm('');
-              setActiveCategory('All');
+              setSearchTerm("");
+              setActiveCategory("All");
               setFilterVegetarian(false);
               setFilterSpicy(false);
               setFilterPopular(false);

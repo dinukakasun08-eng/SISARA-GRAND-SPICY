@@ -25,6 +25,9 @@ export default function AdminReviews() {
       })) as Review[];
       setReviews(fetchedReviews);
       setLoading(false);
+    }, (error) => {
+      console.warn("Admin reviews snapshot error:", error);
+      setLoading(false);
     });
 
     return () => unsubscribe();

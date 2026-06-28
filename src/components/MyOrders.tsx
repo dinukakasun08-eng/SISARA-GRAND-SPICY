@@ -32,7 +32,7 @@ export default function MyOrders() {
       setOrders(fetchedOrders);
       setLoading(false);
     }, (error) => {
-      console.error('Error fetching orders:', error);
+      console.warn('Error fetching orders:', error);
       setLoading(false);
     });
 
@@ -96,7 +96,20 @@ export default function MyOrders() {
                     <span className="text-gray-500">LKR {(item.price * item.quantity).toFixed(2)}</span>
                   </div>
                 ))}
+                {order.additionalFee && order.additionalFee > 0 ? (
+                  <div className="flex justify-between text-sm text-amber-700 bg-amber-50 p-1.5 rounded mt-2">
+                    <span className="font-medium">{order.additionalFeeReason || "Additional Fee"}</span>
+                    <span className="font-medium">LKR {order.additionalFee.toFixed(2)}</span>
+                  </div>
+                ) : null}
               </div>
+
+              {order.specialInstructions && (
+                <div className="mb-4 text-xs bg-yellow-50 text-yellow-800 p-2 rounded-lg border border-yellow-200">
+                  <span className="font-bold block mb-0.5">Special Instructions:</span>
+                  {order.specialInstructions}
+                </div>
+              )}
               
               <div className="flex justify-between items-center pt-3 border-t border-gray-50 font-bold mb-3">
                 <span className="text-gray-800">Total</span>

@@ -37,6 +37,17 @@ export interface Order {
   status: 'pending' | 'preparing' | 'on_way' | 'delivered' | 'cancelled';
   createdAt: string;
   deliveryGuyNumber?: string;
+  specialInstructions?: string;
+  additionalFee?: number;
+  additionalFeeReason?: string;
+}
+
+export interface ReceiptSettings {
+  headerText?: string;
+  footerText?: string;
+  logoUrl?: string;
+  address?: string;
+  phone?: string;
 }
 
 export interface AdminLoginResponse {

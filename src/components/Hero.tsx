@@ -4,14 +4,14 @@ import heroImage from "../assets/images/wok_fire_cooking_1782459770453.jpg";
 
 interface HeroProps {
   onExploreClick: () => void;
-  heroMediaUrl?: string;
+  heroMediaUrl?: string | null;
 }
 
 export default function Hero({ onExploreClick, heroMediaUrl }: HeroProps) {
   return (
     <div
       id="hero-banner"
-      className="relative overflow-hidden bg-gray-950 py-16 sm:py-24"
+      className="relative overflow-hidden bg-gray-950 py-16 sm:py-24 transition-opacity duration-500"
     >
       {/* Visual background artwork with an elegant radial gradient overlay */}
       <div className="absolute inset-0 z-0">
@@ -28,7 +28,7 @@ export default function Hero({ onExploreClick, heroMediaUrl }: HeroProps) {
           <img
             src={heroMediaUrl || heroImage}
             alt="Chef cooking with fire"
-            className="h-full w-full object-cover opacity-40"
+            className="h-full w-full object-cover opacity-40 transition-opacity duration-700"
           />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-gray-950 via-gray-950/70 to-transparent"></div>
@@ -39,7 +39,9 @@ export default function Hero({ onExploreClick, heroMediaUrl }: HeroProps) {
         <div className="max-w-2xl">
           {/* Heading */}
           <h2 className="font-sinhala text-4xl font-extrabold tracking-tight text-white sm:text-6xl sm:leading-[1.15]">
-            පිරිසිදු රසවත් ආහාර<br />ඔබේ දොරකඩටම ගෙන්වා ගන්න
+            පිරිසිදු රසවත් ආහාර
+            <br />
+            ඔබේ දොරකඩටම ගෙන්වා ගන්න
           </h2>
 
           {/* Key Quick Info Grid */}

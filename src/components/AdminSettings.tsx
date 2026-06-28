@@ -1,16 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Loader2, Settings, MapPin, Navigation } from 'lucide-react';
+import { Save, Loader2, Settings, MapPin, Navigation, UploadCloud, FileText } from 'lucide-react';
 import { db } from '../lib/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { ReceiptSettings } from '../types';
 
 export default function AdminSettings() {
   const [perKmRate, setPerKmRate] = useState<number>(0);
   const [restaurantLocation, setRestaurantLocation] = useState<{lat: number, lng: number} | null>(null);
   const [heroMediaUrl, setHeroMediaUrl] = useState<string>('');
+  const [receiptSettings, setReceiptSettings] = useState<ReceiptSettings>({
+    headerText: 'Sisara Grand Spicy',
+    footerText: 'Thank you for your order!',
+    address: 'Veyangoda, Sri Lanka',
+    phone: '+94 78 624 1514',
+    logoUrl: ''
+  });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [geoLoading, setGeoLoading] = useState(false);
+  const [uploadingMedia, setUploadingMedia] = useState(false);
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -18,16 +27,32 @@ export default function AdminSettings() {
         const docRef = doc(db, 'settings', 'delivery');
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
-          setPerKmRate(docSnap.data().perKmRate || 0);
-          setRestaurantLocation(docSnap.data().restaurantLocation || { lat: 7.1558, lng: 80.0505 });
-          setHeroMediaUrl(docSnap.data().heroMediaUrl || '');
+          const data = docSnap.data();
+          setPerKmRate(data.perKmRate || 0);
+          setRestaurantLocation(data.restaurantLocation || { lat: 7.1558, lng: 80.0505 });
+          setHeroMediaUrl(data.heroMediaUrl || '');
+          if (data.receiptSettings) {
+            setReceiptSettings(data.receiptSettings);
+          }
         } else {
           // Initialize if it doesn't exist
-          const defaultSettings = { perKmRate: 50, restaurantLocation: { lat: 7.1558, lng: 80.0505 }, heroMediaUrl: '' };
+          const defaultSettings = { 
+            perKmRate: 50, 
+            restaurantLocation: { lat: 7.1558, lng: 80.0505 }, 
+            heroMediaUrl: '',
+            receiptSettings: {
+              headerText: 'Sisara Grand Spicy',
+              footerText: 'Thank you for your order!',
+              address: 'Veyangoda, Sri Lanka',
+              phone: '+94 78 624 1514',
+              logoUrl: ''
+            }
+          };
           await setDoc(docRef, defaultSettings);
           setPerKmRate(50);
           setRestaurantLocation(defaultSettings.restaurantLocation);
           setHeroMediaUrl('');
+          setReceiptSettings(defaultSettings.receiptSettings);
         }
       } catch (err) {
         console.error('Failed to fetch settings:', err);
@@ -42,7 +67,7 @@ export default function AdminSettings() {
     e.preventDefault();
     setSaving(true);
     try {
-      await setDoc(doc(db, 'settings', 'delivery'), { perKmRate, restaurantLocation, heroMediaUrl });
+      await setDoc(doc(db, 'settings', 'delivery'), { perKmRate, restaurantLocation, heroMediaUrl, receiptSettings });
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err) {
@@ -74,6 +99,30 @@ export default function AdminSettings() {
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
+  };
+
+  const handleMediaUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 1048576) { // 1MB limit for firestore document
+      alert("File is too large! Please select an image under 1MB. (Note: Video uploads may require external URL hosting due to size limits)");
+      return;
+    }
+
+    setUploadingMedia(true);
+    try {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setHeroMediaUrl(reader.result as string);
+        setUploadingMedia(false);
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error("Upload error:", error);
+      alert("Failed to read file.");
+      setUploadingMedia(false);
+    }
   };
 
   if (loading) {
@@ -166,18 +215,71 @@ export default function AdminSettings() {
             <label className="block text-sm font-bold text-gray-700 mb-2">
               Hero Banner Image/Video URL
             </label>
-            <div className="flex items-center">
+            <div className="flex items-center gap-2">
               <input
                 type="text"
                 placeholder="https://example.com/image.jpg or video.mp4"
                 value={heroMediaUrl}
                 onChange={(e) => setHeroMediaUrl(e.target.value)}
-                className="w-full border border-gray-200 py-2.5 px-4 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none font-mono text-sm"
+                className="flex-1 border border-gray-200 py-2.5 px-4 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none font-mono text-sm"
               />
+              <label className="cursor-pointer bg-gray-100 p-2.5 rounded-xl hover:bg-gray-200 transition-colors flex items-center justify-center">
+                {uploadingMedia ? <Loader2 className="w-5 h-5 animate-spin text-gray-500" /> : <UploadCloud className="w-5 h-5 text-gray-600" />}
+                <input type="file" className="hidden" accept="image/*,video/mp4,video/webm" onChange={handleMediaUpload} disabled={uploadingMedia} />
+              </label>
             </div>
             <p className="text-xs text-gray-500 mt-2">
-              Leave blank to use the default image. Provide a valid URL to an image or video (.mp4, .webm).
+              Leave blank to use the default image. Provide a valid URL or upload a file (image or .mp4, .webm).
             </p>
+          </div>
+
+          <div className="border-t border-gray-100 pt-6">
+            <div className="flex items-center gap-2 mb-4">
+              <FileText className="w-5 h-5 text-amber-600" />
+              <h3 className="text-md font-bold text-gray-900">Receipt Print Settings</h3>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-1">Store Name (Header)</label>
+                <input
+                  type="text"
+                  value={receiptSettings.headerText}
+                  onChange={(e) => setReceiptSettings({...receiptSettings, headerText: e.target.value})}
+                  className="w-full border border-gray-200 py-2 px-3 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none text-sm"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-1">Store Address</label>
+                <input
+                  type="text"
+                  value={receiptSettings.address}
+                  onChange={(e) => setReceiptSettings({...receiptSettings, address: e.target.value})}
+                  className="w-full border border-gray-200 py-2 px-3 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-1">Contact Phone</label>
+                <input
+                  type="text"
+                  value={receiptSettings.phone}
+                  onChange={(e) => setReceiptSettings({...receiptSettings, phone: e.target.value})}
+                  className="w-full border border-gray-200 py-2 px-3 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-1">Thank You Message (Footer)</label>
+                <input
+                  type="text"
+                  value={receiptSettings.footerText}
+                  onChange={(e) => setReceiptSettings({...receiptSettings, footerText: e.target.value})}
+                  className="w-full border border-gray-200 py-2 px-3 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none text-sm"
+                />
+              </div>
+            </div>
           </div>
 
           <div className="pt-4 border-t border-gray-100 flex justify-end">

@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { db } from '../lib/firebase';
 import { collection, query, onSnapshot, doc, deleteDoc, addDoc, updateDoc } from 'firebase/firestore';
 import { MenuItem } from '../types';
-import { Plus, Trash2, Edit2, Check, X, Loader2 } from 'lucide-react';
+import { Plus, Trash2, Edit2, Check, X, Loader2, UploadCloud } from 'lucide-react';
 
 export default function AdminProducts() {
   const [products, setProducts] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const [formData, setFormData] = useState<Partial<MenuItem>>({
     name: '',
@@ -29,6 +30,9 @@ export default function AdminProducts() {
         ...doc.data()
       })) as MenuItem[];
       setProducts(fetched);
+      setLoading(false);
+    }, (error) => {
+      console.warn("Products snapshot error:", error);
       setLoading(false);
     });
     return () => unsubscribe();
@@ -62,6 +66,30 @@ export default function AdminProducts() {
     setFormData(product);
     setEditingId(product.id);
     setIsAdding(true);
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 1048576) { // 1MB limit for firestore document
+      alert("File is too large! Please select an image under 1MB.");
+      return;
+    }
+
+    setUploadingImage(true);
+    try {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData({ ...formData, imageUrl: reader.result as string });
+        setUploadingImage(false);
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error("Upload error:", error);
+      alert("Failed to read file.");
+      setUploadingImage(false);
+    }
   };
 
   if (loading) return <div className="p-8 flex justify-center"><Loader2 className="animate-spin text-amber-600" /></div>;
@@ -107,8 +135,14 @@ export default function AdminProducts() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-500 mb-1">Image URL</label>
-              <input type="text" value={formData.imageUrl} onChange={e => setFormData({...formData, imageUrl: e.target.value})} className="w-full border p-2 rounded-lg text-sm" />
+              <label className="block text-xs font-bold text-gray-500 mb-1">Image</label>
+              <div className="flex items-center gap-2">
+                <input type="text" value={formData.imageUrl} onChange={e => setFormData({...formData, imageUrl: e.target.value})} placeholder="Image URL" className="flex-1 border p-2 rounded-lg text-sm" />
+                <label className="cursor-pointer bg-gray-100 p-2 rounded-lg hover:bg-gray-200 transition-colors">
+                  {uploadingImage ? <Loader2 className="w-5 h-5 animate-spin text-gray-500" /> : <UploadCloud className="w-5 h-5 text-gray-600" />}
+                  <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} disabled={uploadingImage} />
+                </label>
+              </div>
             </div>
             <div className="md:col-span-2">
               <label className="block text-xs font-bold text-gray-500 mb-1">Description</label>

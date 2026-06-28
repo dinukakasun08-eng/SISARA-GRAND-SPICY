@@ -15,6 +15,7 @@ interface CartDrawerProps {
     customerPhone: string;
     deliveryAddress: string;
     coordinates: { latitude: number; longitude: number; accuracy?: number } | null;
+    specialInstructions?: string;
   }) => Promise<Order | null>;
   perKmRate: number;
   restaurantLocation: {lat: number, lng: number};
@@ -45,6 +46,7 @@ export default function CartDrawer({
     customerPhone: string;
     deliveryAddress: string;
     coordinates: { latitude: number; longitude: number; accuracy?: number } | null;
+    specialInstructions?: string;
   }) => {
     setIsSubmitting(true);
     try {
@@ -189,7 +191,12 @@ export default function CartDrawer({
                     </div>
                     <h4 className="text-base font-bold text-gray-900">Your cart is empty</h4>
                     <p className="mt-2 text-xs text-gray-500 max-w-xs leading-relaxed">
-                      Add delicious culinary masterpieces from our digital menu to place your delivery order!
+                      Add delicious culinary masterpieces from our digital menu to place your delivery order! 
+                      <br /><br />
+                      <b>How to order:</b><br />
+                      1. Browse the menu<br />
+                      2. Add items to your cart<br />
+                      3. Click checkout to enter your details!
                     </p>
                     <button
                       id="btn-return-menu"
@@ -226,6 +233,8 @@ export default function CartDrawer({
                   </p>
                   <p className="text-xs text-gray-500 mt-3 max-w-xs leading-relaxed">
                     Thank you for ordering from **Sisara Restaurant**! Your food is being prepared with top-tier culinary care.
+                    <br /><br />
+                    <span className="font-semibold text-gray-700">Track Your Order:</span> Keep an eye on the "My Orders" tab above. We will notify you when your order is being prepared, on its way, and delivered!
                   </p>
                 </div>
 
