@@ -11,8 +11,6 @@ import {
   Loader2,
 } from "lucide-react";
 import { MenuItem, CartItem } from "../types";
-import { db } from "../lib/firebase";
-import { collection, query, onSnapshot } from "firebase/firestore";
 
 interface MenuSectionProps {
   cart: CartItem[];
@@ -37,68 +35,20 @@ export default function MenuSection({
   const [filterPopular, setFilterPopular] = useState(false);
 
   useEffect(() => {
-    const q = query(collection(db, "products"));
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const fetched = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as MenuItem[];
-        setMenuItems(fetched);
+    const fetchProducts = async () => {
+      try {
+        const response = await fetch('/api/products');
+        if (response.ok) {
+          const data = await response.json();
+          setMenuItems(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch products:", error);
+      } finally {
         setLoading(false);
-      },
-      (error) => {
-        console.warn("Menu snapshot error:", error);
-        // Fallback data when Firebase quota is exceeded
-        setMenuItems([
-          {
-            id: "fb-1",
-            name: "Classic Burger",
-            description:
-              "Juicy beef patty with fresh lettuce, tomatoes, and our signature sauce.",
-            price: 1200,
-            category: "Mains",
-            imageUrl:
-              "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&q=80",
-            isPopular: true,
-          },
-          {
-            id: "fb-2",
-            name: "Spicy Fries",
-            description:
-              "Crispy french fries tossed in our special spicy seasoning.",
-            price: 450,
-            category: "Appetizers",
-            imageUrl:
-              "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?auto=format&fit=crop&q=80",
-            isVegetarian: true,
-            isSpicy: true,
-          },
-          {
-            id: "fb-3",
-            name: "Chocolate Lava Cake",
-            description: "Warm chocolate cake with a gooey molten center.",
-            price: 650,
-            category: "Desserts",
-            imageUrl:
-              "https://images.unsplash.com/photo-1606313564200-e75d5e30476c?auto=format&fit=crop&q=80",
-          },
-          {
-            id: "fb-4",
-            name: "Fresh Lemonade",
-            description: "Freshly squeezed lemons with a hint of mint.",
-            price: 350,
-            category: "Drinks",
-            imageUrl:
-              "https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&q=80",
-            isVegetarian: true,
-          },
-        ]);
-        setLoading(false);
-      },
-    );
-    return () => unsubscribe();
+      }
+    };
+    fetchProducts();
   }, []);
 
   // Filter logic

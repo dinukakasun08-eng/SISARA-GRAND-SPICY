@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { db } from '../lib/firebase';
-import { collection, query, onSnapshot, doc, deleteDoc, addDoc, updateDoc } from 'firebase/firestore';
 import { MenuItem } from '../types';
 import { Plus, Trash2, Edit2, Check, X, Loader2, UploadCloud } from 'lucide-react';
+import { auth } from '../lib/firebase';
 
 export default function AdminProducts() {
   const [products, setProducts] = useState<MenuItem[]>([]);
@@ -22,34 +21,64 @@ export default function AdminProducts() {
     isPopular: false
   });
 
+  const fetchProducts = async () => {
+    try {
+      const response = await fetch('/api/products');
+      if (response.ok) {
+        const data = await response.json();
+        setProducts(data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch products:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const q = query(collection(db, 'products'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const fetched = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as MenuItem[];
-      setProducts(fetched);
-      setLoading(false);
-    }, (error) => {
-      console.warn("Products snapshot error:", error);
-      setLoading(false);
-    });
-    return () => unsubscribe();
+    fetchProducts();
   }, []);
 
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this product?')) {
-      await deleteDoc(doc(db, 'products', id));
+      try {
+        const token = await auth.currentUser?.getIdToken();
+        const response = await fetch(`/api/products/${id}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        if (response.ok) {
+          fetchProducts();
+        }
+      } catch (error) {
+        console.error("Error deleting product:", error);
+      }
     }
   };
 
   const handleSave = async () => {
     try {
+      const token = await auth.currentUser?.getIdToken();
       if (editingId) {
-        await updateDoc(doc(db, 'products', editingId), formData);
+        await fetch(`/api/products/${editingId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(formData)
+        });
       } else {
-        await addDoc(collection(db, 'products'), formData);
+        await fetch('/api/products', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(formData)
+        });
       }
       setIsAdding(false);
       setEditingId(null);
@@ -57,6 +86,7 @@ export default function AdminProducts() {
         name: '', description: '', price: 0, category: 'Mains', imageUrl: '',
         isVegetarian: false, isSpicy: false, isPopular: false
       });
+      fetchProducts();
     } catch (err) {
       console.error("Error saving product:", err);
     }

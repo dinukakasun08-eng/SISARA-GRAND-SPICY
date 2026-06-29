@@ -55,7 +55,7 @@ export default function AdminSettings() {
           setReceiptSettings(defaultSettings.receiptSettings);
         }
       } catch (err) {
-        console.error('Failed to fetch settings:', err);
+        console.warn('Failed to fetch settings:', err);
       } finally {
         setLoading(false);
       }
